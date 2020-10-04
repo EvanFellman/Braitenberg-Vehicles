@@ -188,7 +188,7 @@ class Player:
 			self.foodForChildren = round(10 + (random() * 10))
 			self.food = 40
 			self.brain = NeuralNetwork(2, 2)
-			self.foodToBirth = round(45 + (random() * 10))
+			self.foodToBirth = round(100 + (random() * 10))
 			self.color = (math.floor(random() * 256),math.floor(random() * 256),math.floor(random() * 256))
 			self.x = random() * WIDTH
 			self.y = random() * HEIGHT
@@ -208,7 +208,7 @@ class Player:
 	def eat(self):
 		self.food += 10
 		if self.food >= self.foodToBirth:
-			self.food -= 15 + self.foodForChildren
+			self.food -= 20 + self.foodForChildren
 			child = Player(parent=self)
 			global players
 			players.append(child)
