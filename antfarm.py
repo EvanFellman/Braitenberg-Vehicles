@@ -1,8 +1,8 @@
 import tkinter as tk
 import math
 from random import *
-WIDTH = 750
-HEIGHT = 750
+WIDTH = 1250
+HEIGHT = 600
 window = tk.Tk()
 label = tk.Label(window, text="AntFarm by Evan Fellman", font=("Helvetica", 30))
 label.pack()
@@ -84,6 +84,7 @@ class NeuralNetwork:
             	allD = dependObj.allDependants.copy()
             	allD[newE1.start] = True
             	self.depend.append(DependObj(newE1.end, [newE1], allD))
+        self.mutateEdge()
         self.depend.sort(key=lambda x: len(x.allDependants.keys()))
 
     def addEdge(self):
@@ -186,9 +187,9 @@ class Player:
 		if parent == None:
 			self.parentId = None
 			self.foodForChildren = round(15 + (random() * 10))
-			self.food = 20
+			self.food = 40
 			self.brain = NeuralNetwork(2, 2)
-			self.foodToBirth = round(30 + (random() * 10))
+			self.foodToBirth = round(45 + (random() * 10))
 			self.color = (math.floor(random() * 256),math.floor(random() * 256),math.floor(random() * 256))
 			self.x = random() * WIDTH
 			self.y = random() * HEIGHT
@@ -196,19 +197,21 @@ class Player:
 		else:
 			self.parentId = parent.id
 			self.foodForChildren = round(parent.foodForChildren + (random() * 4) - 2)
-			self.food = parent.foodForChildren
+			self.food = 2 * parent.foodForChildren
 			copy = parent.brain.copy()
 			copy.mutate()
+			copy.mutate()
+			copy.mutate()
 			self.brain = copy
-			self.foodToBirth = max(10, round(parent.foodToBirth + (random() * 4) - 2))
+			self.foodToBirth = max(41, round(parent.foodToBirth + (random() * 4) - 2))
 			self.color = tuple(map(lambda x: min(255, max(0, round(x + (random() * 10) - 5))), parent.color))
-			self.x = parent.x
-			self.y = parent.y
+			self.x = parent.x + (random() * 100) - 50
+			self.y = parent.y + (random() * 100) - 50
 			self.dir = parent.dir
 	def eat(self):
-		self.food += 10
+		self.food += 20
 		if self.food >= self.foodToBirth:
-			self.food -= 10 + self.foodForChildren
+			self.food -= 15 + self.foodForChildren
 			child = Player(parent=self)
 			global players
 			players.append(child)
@@ -239,10 +242,10 @@ class Player:
 		self.y += math.sin(self.dir) * speed
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
-		self.food -= 0.0001 + (speed / 1000)
+		self.food -= 0.0001 + (speed / 2000)
 		if self.food <= 0:
 			self.die()
-		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 50:
+		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
 			if nFindex == len(foods) - 1:
 				foods = foods[:nFindex]
 			else:
@@ -269,7 +272,7 @@ def handleOneFrame():
 		p.tick()
 		while len(foods) < 20:
 			foods.append((random() * WIDTH, random() * HEIGHT))
-	if random() < 0.0625:
+	if random() < 0.125:
 		foods.append((random() * WIDTH, random() * HEIGHT))
 	for food in foods:
 		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
