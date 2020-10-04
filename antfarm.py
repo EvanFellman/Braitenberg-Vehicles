@@ -178,11 +178,6 @@ class Edge:
     def __repr__(self):
     	return str(self)
 
-def _from_rgb(rgb):
-    """translates an rgb tuple of int to a tkinter friendly color code
-    """
-    return "#%02x%02x%02x" % (rgb[0], rgb[1], rgb[2])  
-
 class Player:
 	def __init__(self, parent=None):
 		global NEXT_PLAYER_ID
