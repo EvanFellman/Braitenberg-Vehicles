@@ -1,8 +1,8 @@
 import tkinter as tk
 import math
 from random import *
-WIDTH = 1250
-HEIGHT = 600
+WIDTH = 1750
+HEIGHT = 1000
 window = tk.Tk()
 label = tk.Label(window, text="AntFarm by Evan Fellman", font=("Helvetica", 30))
 label.pack()
@@ -84,7 +84,6 @@ class NeuralNetwork:
             	allD = dependObj.allDependants.copy()
             	allD[newE1.start] = True
             	self.depend.append(DependObj(newE1.end, [newE1], allD))
-        self.mutateEdge()
         self.depend.sort(key=lambda x: len(x.allDependants.keys()))
 
     def addEdge(self):
@@ -186,7 +185,7 @@ class Player:
 		NEXT_PLAYER_ID += 1
 		if parent == None:
 			self.parentId = None
-			self.foodForChildren = round(15 + (random() * 10))
+			self.foodForChildren = round(10 + (random() * 10))
 			self.food = 40
 			self.brain = NeuralNetwork(2, 2)
 			self.foodToBirth = round(45 + (random() * 10))
@@ -197,19 +196,17 @@ class Player:
 		else:
 			self.parentId = parent.id
 			self.foodForChildren = round(parent.foodForChildren + (random() * 4) - 2)
-			self.food = 2 * parent.foodForChildren
+			self.food = 2.5 * parent.foodForChildren
 			copy = parent.brain.copy()
-			copy.mutate()
-			copy.mutate()
 			copy.mutate()
 			self.brain = copy
 			self.foodToBirth = max(41, round(parent.foodToBirth + (random() * 4) - 2))
-			self.color = tuple(map(lambda x: min(255, max(0, round(x + (random() * 10) - 5))), parent.color))
+			self.color = tuple(map(lambda x: min(255, max(0, round(x + (random() * 20) - 10))), parent.color))
 			self.x = parent.x + (random() * 100) - 50
 			self.y = parent.y + (random() * 100) - 50
 			self.dir = parent.dir
 	def eat(self):
-		self.food += 20
+		self.food += 10
 		if self.food >= self.foodToBirth:
 			self.food -= 15 + self.foodForChildren
 			child = Player(parent=self)
@@ -235,14 +232,36 @@ class Player:
 			if ((food[0] - self.x) ** 2) + ((food[1] - self.y) ** 2) < ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2):
 				nearestFood = food
 				nFindex = i
-		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x)])
+			w = math.inf
+			h = math.inf
+			if food[0] > self.x:
+				w = self.x + (WIDTH - food[0])
+			else:
+				w = food[0] + (WIDTH - self.x)
+			if food[1] > self.y:
+				w = self.y + (HEIGHT- food[1])
+			else:
+				w = food[1] + (HEIGHT - self.y)
+			if (w ** 2) + (h **2) < ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2):
+				nearestFood = food
+				nFindex = i
+
+		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x)])
 		speed = max(0, min(math.log(max(0, speedAndDirection[0] / 20)+1), 10))
-		self.dir += max(0, min(speedAndDirection[1], math.pi / 16))
+		self.dir += max(0, min(speedAndDirection[1] / 100, math.pi / 16))
 		self.x += math.cos(self.dir) * speed
-		self.y += math.sin(self.dir) * speed
-		self.x = max(0, min(WIDTH, self.x))
-		self.y = max(0, min(HEIGHT, self.y))
-		self.food -= 0.0001 + (speed / 2000)
+		self.y -= math.sin(self.dir) * speed
+		if self.x < 0:
+			self.x = WIDTH - 1
+		elif self.x >= WIDTH:
+			self.x = 0
+		if self.y < 0:
+			self.y = HEIGHT - 1
+		elif self.y >= HEIGHT:
+			self.y = 0
+		# self.x = max(0, min(WIDTH, self.x))
+		# self.y = max(0, min(HEIGHT, self.y))
+		self.food -= 0.001 + (speed / 1000)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
@@ -264,18 +283,19 @@ class Player:
 			], fill="#%02x%02x%02x" % self.color)
 for i in range(20):
 	foods.append((random() * WIDTH, random() * HEIGHT))
-for i in range(100):
+for i in range(30):
 	players.append(Player())
 def handleOneFrame():
 	canvas.delete("all")
 	for p in players:
 		p.tick()
-		while len(foods) < 20:
+		while len(foods) < 22:
 			foods.append((random() * WIDTH, random() * HEIGHT))
 	if random() < 0.125:
 		foods.append((random() * WIDTH, random() * HEIGHT))
 	for food in foods:
 		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
+	label['text'] = "Aquarium by Evan Fellman\t\t\tplayers alive: {}".format(len(players))
 	canvas.after(10, handleOneFrame)
 canvas.after(0, handleOneFrame)
 window.mainloop()
