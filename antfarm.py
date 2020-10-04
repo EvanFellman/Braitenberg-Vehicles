@@ -226,9 +226,12 @@ class Player:
 	def tick(self):
 		global foods
 		nearestFood = (math.inf, math.inf)
-		for food in foods:
+		nFindex = None
+		for i in range(len(foods)):
+			food = foods[i]
 			if ((food[0] - self.x) ** 2) + ((food[1] - self.y) ** 2) < ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2):
 				nearestFood = food
+				nFindex = i
 		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x)])
 		speed = max(0, min(math.log(max(0, speedAndDirection[0] / 20)+1), 10))
 		self.dir += max(0, min(speedAndDirection[1], math.pi / 16))
@@ -239,7 +242,11 @@ class Player:
 		self.food -= 0.0001 + (speed / 1000)
 		if self.food <= 0:
 			self.die()
-		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 25:
+		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 50:
+			if nFindex == len(foods) - 1:
+				foods = foods[:nFindex]
+			else:
+				foods = foods[:nFindex] + foods[nFindex+1:]
 			self.eat()
 		self.draw()
 
@@ -252,13 +259,20 @@ class Player:
 				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
 				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
 			], fill="#%02x%02x%02x" % self.color)
-foods.append((100, 100))
+for i in range(20):
+	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(100):
 	players.append(Player())
 def handleOneFrame():
 	canvas.delete("all")
 	for p in players:
 		p.tick()
+		while len(foods) < 20:
+			foods.append((random() * WIDTH, random() * HEIGHT))
+	if random() < 0.0625:
+		foods.append((random() * WIDTH, random() * HEIGHT))
+	for food in foods:
+		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
 	canvas.after(10, handleOneFrame)
 canvas.after(0, handleOneFrame)
 window.mainloop()
