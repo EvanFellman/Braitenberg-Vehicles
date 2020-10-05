@@ -115,6 +115,7 @@ class NeuralNetwork:
         else:
             start, end = choice(allPairsAcc)
             e = Edge(start, end)
+            e.weight = 0
             self.edges.append(e)
             startAllDependants = []
             for dependObj in self.depend:
