@@ -262,7 +262,7 @@ class Player:
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
-		self.food -= 0.001 + (speed / 1000)
+		self.food -= 0.001 + (speed / 1500)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
@@ -288,6 +288,7 @@ for i in range(50):
 	players.append(Player())
 frameCount = 0
 start = datetime.now()
+veryStart = datetime.now()
 foodMin = 22
 def handleOneFrame():
 	global frameCount
@@ -314,8 +315,12 @@ def handleOneFrame():
 		foodDensity[int(x // 20)][int(y // 20)] += 1
 	for food in foods:
 		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
-	label['text'] = "Aquarium by Evan Fellman\t\t\tplayers alive: {}".format(len(players))
-	canvas.after(15, handleOneFrame)
+	if len(players) == 0:
+		label['text'] = "Aquarium by Evan Fellman\t\t\tEveryone died. This ran from {} to {}".format(veryStart, datetime.now())
+		label['font'] = ("Helvetica", 15)
+	else:
+		label['text'] = "Aquarium by Evan Fellman\t\t\tplayers alive: {}".format(len(players))
+		canvas.after(15, handleOneFrame)
 canvas.after(0, handleOneFrame)
 window.mainloop()
 
