@@ -1,6 +1,7 @@
 import tkinter as tk
 import math
 from random import *
+from datetime import datetime
 WIDTH = 1750
 HEIGHT = 1000
 window = tk.Tk()
@@ -286,18 +287,30 @@ for i in range(20):
 	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(30):
 	players.append(Player())
+frameCount = 0
+start = datetime.now()
+foodMin = 22
 def handleOneFrame():
+	global frameCount
+	global start
+	global foodMin
+	if frameCount == 100:
+		foodMin = min(22, (30/50) * frameCount / (datetime.now() - start).seconds)
+		start = datetime.now()
+		frameCount = 0
+	else:
+		frameCount += 1
 	canvas.delete("all")
 	for p in players:
 		p.tick()
-		while len(foods) < 22:
+		while len(foods) < foodMin:
 			foods.append((random() * WIDTH, random() * HEIGHT))
 	if random() < 0.125:
 		foods.append((random() * WIDTH, random() * HEIGHT))
 	for food in foods:
 		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
 	label['text'] = "Aquarium by Evan Fellman\t\t\tplayers alive: {}".format(len(players))
-	canvas.after(10, handleOneFrame)
+	canvas.after(15, handleOneFrame)
 canvas.after(0, handleOneFrame)
 window.mainloop()
 
