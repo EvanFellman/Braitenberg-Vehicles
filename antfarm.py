@@ -295,7 +295,7 @@ def handleOneFrame():
 	global start
 	global foodMin
 	if frameCount == 100:
-		foodMin = min(22, (30/50) * frameCount / (datetime.now() - start).seconds)
+		foodMin = max(1, min(22, (30/50) * frameCount / (datetime.now() - start).seconds))
 		start = datetime.now()
 		frameCount = 0
 	else:
