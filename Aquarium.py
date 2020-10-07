@@ -195,7 +195,7 @@ class Player:
 			self.parentId = None
 			self.foodForChildren = round(10 + (random() * 10))
 			self.food = 40
-			self.brain = NeuralNetwork(6, 2)
+			self.brain = NeuralNetwork(7, 2)
 			self.foodToBirth = round(100 + (random() * 10))
 			self.color = (math.floor(random() * 256),math.floor(random() * 256),math.floor(random() * 256))
 			self.x = random() * WIDTH
@@ -215,9 +215,9 @@ class Player:
 			self.dir = parent.dir
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
 	def eat(self):
-		self.food += 10
+		self.food += 15
 		if self.food >= self.foodToBirth:
-			self.food -= 20 + self.foodForChildren
+			self.food -= 20
 			child = Player(parent=self)
 			global players
 			players.append(child)
@@ -228,10 +228,10 @@ class Player:
 		for index in range(len(players)):
 			if players[index].id == self.id:
 				toRemove = index
-		if index == len(players) - 1:
-			players = players[:index]
+		if toRemove == len(players) - 1:
+			players = players[:toRemove]
 		else:
-			players = players[:index] + players[index+1:]
+			players = players[:toRemove] + players[toRemove+1:]
 		playerDensity[int(self.x // 20)][int(self.y // 20)] -= 1
 
 	def tick(self):
@@ -253,7 +253,7 @@ class Player:
 			for j in range(max(int(self.y//20) - 3, 0), 1 + min(int(self.y//20) + 3, int((HEIGHT - 1)//20))):
 				foodDensityInput += foodDensity[i][j]
 				playerDensityInput += playerDensity[i][j]
-		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x), self.x, self.y, 10 * foodDensityInput, 10 * playerDensityInput])
+		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x), self.x, self.y, 100 * self.dir, 10 * foodDensityInput, 10 * playerDensityInput])
 		speed = max(0, min(math.log(max(0, speedAndDirection[0] / 20)+1), 10))
 		self.dir += max(0, min(speedAndDirection[1] / 100, math.pi / 16))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] -= 1
@@ -262,7 +262,7 @@ class Player:
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
-		self.food -= 0.001 + (speed / 1500)
+		self.food -= 0.005 + (speed / 1500)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
@@ -282,9 +282,9 @@ class Player:
 				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
 				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
 			], fill="#%02x%02x%02x" % self.color)
-for i in range(20):
-	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(50):
+	foods.append((random() * WIDTH, random() * HEIGHT))
+for i in range(100):
 	players.append(Player())
 frameCount = 0
 start = datetime.now()
@@ -295,7 +295,7 @@ def handleOneFrame():
 	global start
 	global foodMin
 	if frameCount == 100:
-		foodMin = max(1, min(22, (30/50) * frameCount / (datetime.now() - start).seconds))
+		foodMin = max(1, min(22, (60/50) * frameCount / (datetime.now() - start).seconds))
 		start = datetime.now()
 		frameCount = 0
 	else:
@@ -303,12 +303,12 @@ def handleOneFrame():
 	canvas.delete("all")
 	for p in players:
 		p.tick()
-		while len(foods) < foodMin:
-			x = random() * WIDTH
-			y = random() * HEIGHT
-			foods.append((x, y))
-			foodDensity[int(x // 20)][int(y // 20)] += 1
-	if random() < 0.125:
+	while len(foods) < foodMin:
+		x = random() * WIDTH
+		y = random() * HEIGHT
+		foods.append((x, y))
+		foodDensity[int(x // 20)][int(y // 20)] += 1
+	if random() < 0.25:
 		x = random() * WIDTH
 		y = random() * HEIGHT
 		foods.append((x, y))
