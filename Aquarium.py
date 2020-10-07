@@ -262,7 +262,7 @@ class Player:
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
-		self.food -= 0.005 + (speed / 1500)
+		self.food -= 0.005 + (speed / 1500) + (len(players) / 5000)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
