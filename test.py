@@ -1,9 +1,7 @@
 import tkinter as tk
 import math
 from time import sleep, time
-frames = 0
-start = time()
-window = tk.Tk()
+frames = 0window = tk.Tk()
 canvas = tk.Canvas(window, width=750, height=750)
 canvas.pack()
 def drawPlayer(x: int, y:int, dir:float) -> None:
@@ -16,6 +14,7 @@ def drawPlayer(x: int, y:int, dir:float) -> None:
 		], fill="red")
 
 # sleep(0.5)
+start = time()
 theta = 0
 r = 100
 def f():
@@ -30,7 +29,6 @@ def f():
 		print("{} frames a second.".format(frames / int(time() - start)))
 	canvas.after(10, f)
 
-drawPlayer(200, 200, 3.14 / 4)
 # canvas.create_polygon([(100, 100), (100 - 15, 100 - 15), (100 - 15, 100 + 15)], fill="red")
 label = tk.Label(text="test")
 label.pack()

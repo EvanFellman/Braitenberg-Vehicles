@@ -274,6 +274,7 @@ class Player:
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
+		self.speed = speed
 		self.food -= 0.005 + (speed / 1500) + (len(players) / 3000)
 		if self.food <= 0:
 			self.die()
@@ -352,9 +353,6 @@ def onclick(event):
 		picOfDude.create_rectangle(0, 0, 200, 125, fill="#%02x%02x%02x" % (255, 255, 255))
 		picOfDude.create_polygon([
 					(125, 60), 
-					# (0, 0),
-					# (25, 50),
-					# (0, 100)
 					(125 + (SIZE * math.cos(3 * math.pi / 4)), 60 - (SIZE * math.sin(3 * math.pi / 4))), 
 					(125 + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(math.pi)), 60 - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(math.pi))),
 					(125 + (SIZE * math.cos(5 * math.pi / 4)), 60 - (SIZE * math.sin(5 * math.pi / 4)))
@@ -363,6 +361,10 @@ def onclick(event):
 		idLabel.grid(row=3, column=0)
 		foodLabel = tk.Label(frame, text="Food: {}".format(int(closest.food)))
 		foodLabel.grid(row=3, column=1)
+		speedLabel = tk.Label(frame, text="Speed: {}".format(int(closest.speed)))
+		speedLabel.grid(row=4, column=0)
+		directionLabel = tk.Label(frame, text="Direction: {}".format(int(closest.dir * 180 / math.pi)))
+		directionLabel.grid(row=4, column=1)
 		frame.attributes('-topmost', 'true')
 		def on_closing_info():
 			global highlightPlayers
@@ -380,6 +382,10 @@ def onclick(event):
 		frame.protocol("WM_DELETE_WINDOW", on_closing_info)
 		def newFrameThread():
 			foodLabel["text"] = "Food: {}".format(int(closest.food))
+			if closest.food <= 20:
+				foodLabel["fg"] = '#%02x%02x%02x' % (255 - int(255 * closest.food / 20), 0, 0)
+			speedLabel["text"] = "Speed: {}".format(int(closest.speed))
+			directionLabel["text"] = "Direction: {}".format(int((closest.dir * 180 / math.pi) % 360))
 			if closest.food <= 0:
 				frame.destroy()
 			frame.after(10, newFrameThread)
