@@ -367,7 +367,6 @@ def onclick(event):
 		dy = 20
 		neurons = {}
 		for i in closest.brain.inputs:
-			print(int(i * 200 / len(closest.brain.inputs)))
 			neurons[i] = (dx, int((i + 0.5) * 150 / (len(closest.brain.inputs) + 2)), [])
 
 		lastX = -1 * math.inf
