@@ -194,6 +194,8 @@ class Player:
 		global HEIGHT
 		self.id = NEXT_PLAYER_ID
 		NEXT_PLAYER_ID += 1
+		self.born = datetime.now()
+		self.numChildren = 0
 		if parent == None:
 			self.parentId = None
 			self.foodForChildren = round(10 + (random() * 10))
@@ -224,6 +226,7 @@ class Player:
 			child = Player(parent=self)
 			global players
 			players.append(child)
+			self.numChildren += 1
 	def die(self):
 		global players
 		global playerDensity
@@ -277,7 +280,7 @@ class Player:
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
 		self.speed = speed
-		self.food -= 0.005 + (speed / 1500) + (len(players) / 3000)
+		self.food -= 0.005 + (speed / 1500) + (len(players) / 4000)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
@@ -356,7 +359,7 @@ def onclick(event):
 	else:
 		highlightPlayers.append(closest.id)
 		frame = tk.Toplevel(window)
-		frame.geometry("200x300")
+		frame.geometry("200x325")
 		picOfDude = tk.Canvas(frame, width=200, height=125)
 		picOfDude.grid(row=0, columnspan=2, rowspan=3)
 		SIZE = 75
@@ -421,6 +424,20 @@ def onclick(event):
 		speedLabel.grid(row=7, column=0)
 		directionLabel = tk.Label(frame, text="Direction: {}".format(int(closest.dir * 180 / math.pi)))
 		directionLabel.grid(row=7, column=1)
+		tDelta = datetime.now() - closest.born
+		timeString = ""
+		if tDelta.days > 0:
+			timeString = str(tDelta.days) + " days"
+		elif tDelta.seconds > 3600:
+			timeString = str(int(tDelta.seconds / 3600)) + " hours"
+		elif tDelta.seconds > 60:
+			timeString = str(int(tDelta.seconds / 60)) + " minutes"
+		else:
+			timeString = str(tDelta.seconds) + " seconds"
+		timeAliveLabel = tk.Label(frame, text="Time alive: {}".format(timeString))
+		timeAliveLabel.grid(row=8, column=0)
+		numChildrenLabel = tk.Label(frame, text="Children count: {}".format(closest.numChildren))
+		numChildrenLabel.grid(row=8,column=1)
 		frame.attributes('-topmost', 'true')
 		def on_closing_info():
 			global highlightPlayers
@@ -455,6 +472,18 @@ def onclick(event):
 				foodLabel["fg"] = '#%02x%02x%02x' % (0, 0, 0)
 			speedLabel["text"] = "Speed: {}".format(int(closest.speed))
 			directionLabel["text"] = "Direction: {}".format(int((closest.dir * 180 / math.pi) % 360))
+			tDelta = datetime.now() - closest.born
+			timeString = ""
+			if tDelta.days > 0:
+				timeString = str(tDelta.days) + " days"
+			elif tDelta.seconds > 3600:
+				timeString = str(int(tDelta.seconds / 3600)) + " hr"
+			elif tDelta.seconds > 60:
+				timeString = str(int(tDelta.seconds / 60)) + " min"
+			else:
+				timeString = str(tDelta.seconds) + " sec"
+			timeAliveLabel["text"] = "Time alive: {}".format(timeString)
+			numChildrenLabel["text"] = "Children count: {}".format(closest.numChildren)
 			lastCalc = closest.brain.lastCalc
 			if sums[-1] == 200:
 				sums = {}
