@@ -390,7 +390,11 @@ def onclick(event):
 					green = 0
 				neuralNetPic.create_line(data[0] + 5, data[1] + 5, neurons[d.start][0] + 5, neurons[d.start][1] + 5, fill="#%02x%02x%02x" % (red, green, 0))
 		for nodeNum, data in neurons.items():
-			neuralNetPic.create_rectangle(data[0]- 1, data[1] - 1, data[0] + 11, data[1] + 11, fill="black")
+			neuralNetPic.create_rectangle(data[0]- 1, data[1] - 1, data[0] + 10, data[1] + 10, fill="black")
+			box = tk.Canvas(frame, width=10, height=10, highlightthickness=0)
+			box.create_rectangle(0, 0, 10, 10, fill="black")
+			box.place(x=data[0], y=data[1]+129)
+			neurons[nodeNum] = box
 		idLabel = tk.Label(frame, text="ID: {}".format(closest.id))
 		idLabel.grid(row=6, column=0)
 		foodLabel = tk.Label(frame, text="Food: {}".format(int(closest.food)))
@@ -414,12 +418,31 @@ def onclick(event):
 					highlightPlayers = highlightPlayers[:remIndex] + highlightPlayers[remIndex + 1:]
 			frame.destroy()
 		frame.protocol("WM_DELETE_WINDOW", on_closing_info)
+		def sigmoid(x):
+			if x > 100:
+				return 1
+			elif x < -100:
+				return 0
+			else:
+				return 1 / (1 + math.exp(-1 *x))
+		sums = {}
+		for i in neurons.keys():
+			sums[i] = 0
+		sums[-1] = 0
 		def newFrameThread():
 			foodLabel["text"] = "Food: {}".format(int(closest.food))
 			if closest.food <= 20:
 				foodLabel["fg"] = '#%02x%02x%02x' % (255 - int(255 * closest.food / 20), 0, 0)
 			speedLabel["text"] = "Speed: {}".format(int(closest.speed))
 			directionLabel["text"] = "Direction: {}".format(int((closest.dir * 180 / math.pi) % 360))
+			lastCalc = closest.brain.lastCalc
+			for nodeNum, value in lastCalc.items():
+				sums[nodeNum] += value
+			sums[-1] += 1
+			for nodeNum, box in neurons.items():
+				box.delete("all")
+				color = 255 - int(255 * sigmoid((lastCalc[nodeNum] - (sums[nodeNum] / sums[-1])) / 100))
+				box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
 			if closest.food <= 0:
 				frame.destroy()
 			frame.after(10, newFrameThread)
