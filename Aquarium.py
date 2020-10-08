@@ -46,6 +46,7 @@ class NeuralNetwork:
 		self.inputs = list(range(inputSize))
 		self.outputs = list(range(inputSize, inputSize + outputSize))
 		self.depend = [DependObj(i, [], {}) for i in (self.inputs + self.outputs) ]
+		self.lastCalc = None
 		for inputNode in self.inputs:
 			for outputNode in self.outputs:
 				e = Edge(inputNode, outputNode)
@@ -68,6 +69,7 @@ class NeuralNetwork:
 			for e in dependObj.dependsOn:
 				acc += nodeValues[e.start] * e.weight
 			nodeValues[dependObj.nodeNum] = acc
+		self.lastCalc = nodeValues
 		return [nodeValues[i] for i in self.outputs]
 
 	def addNode(self):
@@ -345,7 +347,7 @@ def onclick(event):
 	else:
 		highlightPlayers.append(closest.id)
 		frame = tk.Toplevel(window)
-		frame.geometry("200x200")
+		frame.geometry("200x300")
 		picOfDude = tk.Canvas(frame, width=200, height=125)
 		picOfDude.grid(row=0, columnspan=2, rowspan=3)
 		SIZE = 75
@@ -357,14 +359,46 @@ def onclick(event):
 					(125 + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(math.pi)), 60 - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(math.pi))),
 					(125 + (SIZE * math.cos(5 * math.pi / 4)), 60 - (SIZE * math.sin(5 * math.pi / 4)))
 				], fill="#%02x%02x%02x" % closest.color)
+		neuralNetPic = tk.Canvas(frame, width=200, height=125)
+		neuralNetPic.grid(row=3, columnspan=2, rowspan=3)
+		neuralNetPic.create_rectangle(0, 0, 200, 200, fill="#%02x%02x%02x" % (255, 255, 255))
+		numNeurons = len(closest.brain.depend)
+		dx = int(200 / (numNeurons - (len(closest.brain.inputs) - 2)))
+		dy = 20
+		neurons = {}
+		for i in closest.brain.inputs:
+			print(int(i * 200 / len(closest.brain.inputs)))
+			neurons[i] = (dx, int((i + 0.5) * 150 / (len(closest.brain.inputs) + 2)), [])
+
+		lastX = -1 * math.inf
+		counter = 2
+		for dependObj in closest.brain.depend:
+			if dependObj.nodeNum in closest.brain.inputs:
+				continue
+			else:
+				neurons[dependObj.nodeNum] = (counter * dx, 10 + ((counter * dy) % 105), dependObj.dependsOn)
+				lastX = counter * dx
+				counter += 1
+		for out in closest.brain.outputs:
+			neurons[out] = (lastX, neurons[out][1], neurons[out][2])
+		for nodeNum, data in neurons.items():
+			for d in data[2]:
+				green = int(max(-255, min(255, 255 / (4 * d.weight))))
+				red = 0
+				if green < 0:
+					red = green * -1
+					green = 0
+				neuralNetPic.create_line(data[0] + 5, data[1] + 5, neurons[d.start][0] + 5, neurons[d.start][1] + 5, fill="#%02x%02x%02x" % (red, green, 0))
+		for nodeNum, data in neurons.items():
+			neuralNetPic.create_rectangle(data[0]- 1, data[1] - 1, data[0] + 11, data[1] + 11, fill="black")
 		idLabel = tk.Label(frame, text="ID: {}".format(closest.id))
-		idLabel.grid(row=3, column=0)
+		idLabel.grid(row=6, column=0)
 		foodLabel = tk.Label(frame, text="Food: {}".format(int(closest.food)))
-		foodLabel.grid(row=3, column=1)
+		foodLabel.grid(row=6, column=1)
 		speedLabel = tk.Label(frame, text="Speed: {}".format(int(closest.speed)))
-		speedLabel.grid(row=4, column=0)
+		speedLabel.grid(row=7, column=0)
 		directionLabel = tk.Label(frame, text="Direction: {}".format(int(closest.dir * 180 / math.pi)))
-		directionLabel.grid(row=4, column=1)
+		directionLabel.grid(row=7, column=1)
 		frame.attributes('-topmost', 'true')
 		def on_closing_info():
 			global highlightPlayers
