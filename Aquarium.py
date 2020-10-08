@@ -382,7 +382,10 @@ def onclick(event):
 			neurons[out] = (lastX, neurons[out][1], neurons[out][2])
 		for nodeNum, data in neurons.items():
 			for d in data[2]:
-				green = int(max(-255, min(255, 255 / (4 * d.weight))))
+				if d.weight == 0:
+					green = 0
+				else:
+					green = int(max(-255, min(255, 255 / (4 * d.weight))))
 				red = 0
 				if green < 0:
 					red = green * -1
