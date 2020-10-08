@@ -267,7 +267,7 @@ class Player:
 			for j in range(max(int(self.y//20) - 3, 0), 1 + min(int(self.y//20) + 3, int((HEIGHT - 1)//20))):
 				foodDensityInput += foodDensity[i][j]
 				playerDensityInput += playerDensity[i][j]
-		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x), self.x, self.y, 100 * self.dir, 10 * foodDensityInput, 10 * playerDensityInput])
+		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * (math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x) - (self.dir % (2 * math.pi))), self.x, self.y, 100 * self.dir, 10 * foodDensityInput, 10 * playerDensityInput])
 		speed = max(0, min(math.log(max(0, speedAndDirection[0] / 20)+1), 10))
 		self.dir += max(0, min(speedAndDirection[1] / 100, math.pi / 16))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] -= 1
@@ -300,6 +300,15 @@ class Player:
 				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
 				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
 			], fill="#%02x%02x%02x" % highlightColor)
+			global foods
+			nearestFood = (math.inf, math.inf)
+			nFindex = None
+			for i in range(len(foods)):
+				food = foods[i]
+				if ((food[0] - self.x) ** 2) + ((food[1] - self.y) ** 2) < ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2):
+					nearestFood = food
+					nFindex = i
+			canvas.create_line(self.x, self.y, nearestFood[0], nearestFood[1])
 		SIZE = 20
 		canvas.create_polygon([
 				(self.x, self.y), 
@@ -378,15 +387,22 @@ def onclick(event):
 				neurons[dependObj.nodeNum] = (counter * dx, 10 + ((counter * dy) % 105), dependObj.dependsOn)
 				lastX = counter * dx
 				counter += 1
+		def sign(x):
+			if x >= 0:
+				return 1
+			else:
+				return -1
 		for out in closest.brain.outputs:
 			neurons[out] = (lastX, neurons[out][1], neurons[out][2])
 		for nodeNum, data in neurons.items():
 			for d in data[2]:
-				if d.weight == 0:
-					green = 0
-				else:
-					green = int(max(-255, min(255, 255 / (4 * d.weight))))
 				red = 0
+				green = 0
+				# if d.weight == 0:
+				# 	green = 255
+				# 	red = 0
+				# else:
+				green = int(max(-255, min(255, (d.weight * 128))))
 				if green < 0:
 					red = green * -1
 					green = 0
@@ -435,6 +451,8 @@ def onclick(event):
 			foodLabel["text"] = "Food: {}".format(int(closest.food))
 			if closest.food <= 20:
 				foodLabel["fg"] = '#%02x%02x%02x' % (255 - int(255 * closest.food / 20), 0, 0)
+			else:
+				foodLabel["fg"] = '#%02x%02x%02x' % (0, 0, 0)
 			speedLabel["text"] = "Speed: {}".format(int(closest.speed))
 			directionLabel["text"] = "Direction: {}".format(int((closest.dir * 180 / math.pi) % 360))
 			lastCalc = closest.brain.lastCalc
@@ -450,7 +468,7 @@ def onclick(event):
 				box.delete("all")
 				color = 255 - int(255 * sigmoid((lastCalc[nodeNum] - (sums[nodeNum] / sums[-1])) / 100))
 				box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
-			if closest.food <= 0:
+			if closest.food <= 0 or closest.id not in highlightPlayers:
 				frame.destroy()
 			frame.after(10, newFrameThread, sums)
 		allInfoFrames.append((frame, closest))
