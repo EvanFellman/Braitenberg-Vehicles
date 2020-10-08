@@ -15,6 +15,7 @@ players = []
 foods = []
 playerDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
 foodDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
+highlightPlayers = []
 
 #reduce<T, E>: (arr: T[], f: (E, T) => E, initValue: E): E
 def reduce(arr, f, initValue):
@@ -224,6 +225,7 @@ class Player:
 	def die(self):
 		global players
 		global playerDensity
+		global highlightPlayers
 		toRemove = None
 		for index in range(len(players)):
 			if players[index].id == self.id:
@@ -232,6 +234,16 @@ class Player:
 			players = players[:toRemove]
 		else:
 			players = players[:toRemove] + players[toRemove+1:]
+		if self.id in highlightPlayers:
+			remIndex = 0
+			for idx in range(len(highlightPlayers)):
+				if highlightPlayers[idx] == self.id:
+					remIndex = idx
+					break
+			if remIndex == len(highlightPlayers) - 1:
+				highlightPlayers = highlightPlayers[:-1]
+			else:
+				highlightPlayers = highlightPlayers[:remIndex] + highlightPlayers[remIndex + 1:]
 		playerDensity[int(self.x // 20)][int(self.y // 20)] -= 1
 
 	def tick(self):
@@ -262,7 +274,7 @@ class Player:
 		self.x = max(0, min(WIDTH, self.x))
 		self.y = max(0, min(HEIGHT, self.y))
 		playerDensity[int(self.x // 20)][int(self.y // 20)] += 1
-		self.food -= 0.005 + (speed / 1500) + (len(players) / 5000)
+		self.food -= 0.005 + (speed / 1500) + (len(players) / 3000)
 		if self.food <= 0:
 			self.die()
 		if ((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2) < 400:
@@ -275,6 +287,16 @@ class Player:
 
 
 	def draw(self):
+		global highlightPlayers
+		if self.id in highlightPlayers:
+			SIZE = 30
+			highlightColor = (0, 0, 0)
+			canvas.create_polygon([
+				(self.x + (5 * math.cos(self.dir)), self.y - (5 * math.sin(self.dir))), 
+				(self.x + (SIZE * math.cos(self.dir + (3 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (3 * math.pi / 4)))), 
+				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
+				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
+			], fill="#%02x%02x%02x" % highlightColor)
 		SIZE = 20
 		canvas.create_polygon([
 				(self.x, self.y), 
@@ -282,6 +304,87 @@ class Player:
 				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
 				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
 			], fill="#%02x%02x%02x" % self.color)
+
+allInfoFrames = []
+
+def onclick(event):
+	global highlightPlayers
+	global players
+	global window
+	global allInfoFrames
+	mouseX = event.x
+	mouseY = event.y
+	closest = (math.inf, None)
+	for p in players:
+		if (p.x - mouseX) ** 2 + (p.y - mouseY) ** 2 < closest[0]:
+			closest = (p.x - mouseX) ** 2 + (p.y - mouseY) ** 2, p
+	closest = closest[1]
+	if closest == None:
+		#There are no players on screen :(
+		return
+	elif closest.id in highlightPlayers:
+		remIndex = 0
+		for idx in range(len(highlightPlayers)):
+			if highlightPlayers[idx] == closest.id:
+				remIndex = idx
+				break
+		if len(highlightPlayers) - 1 == remIndex:
+			highlightPlayers = highlightPlayers[:-1]
+		else:
+			highlightPlayers = highlightPlayers[:remIndex] + highlightPlayers[remIndex + 1:]
+		for idx in range(len(allInfoFrames)):
+			if allInfoFrames[idx][1].id == closest.id:
+				allInfoFrames[idx][0].destroy()
+				remIndex = idx
+				break
+		if len(allInfoFrames) - 1 == remIndex:
+			allInfoFrames = allInfoFrames[:-1]
+		else:
+			allInfoFrames = allInfoFrames[:remIndex] + allInfoFrames[remIndex + 1:]
+	else:
+		highlightPlayers.append(closest.id)
+		frame = tk.Toplevel(window)
+		frame.geometry("200x200")
+		picOfDude = tk.Canvas(frame, width=200, height=125)
+		picOfDude.grid(row=0, columnspan=2, rowspan=3)
+		SIZE = 75
+		frame.resizable(0,0)
+		picOfDude.create_rectangle(0, 0, 200, 125, fill="#%02x%02x%02x" % (255, 255, 255))
+		picOfDude.create_polygon([
+					(125, 60), 
+					# (0, 0),
+					# (25, 50),
+					# (0, 100)
+					(125 + (SIZE * math.cos(3 * math.pi / 4)), 60 - (SIZE * math.sin(3 * math.pi / 4))), 
+					(125 + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(math.pi)), 60 - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(math.pi))),
+					(125 + (SIZE * math.cos(5 * math.pi / 4)), 60 - (SIZE * math.sin(5 * math.pi / 4)))
+				], fill="#%02x%02x%02x" % closest.color)
+		idLabel = tk.Label(frame, text="ID: {}".format(closest.id))
+		idLabel.grid(row=3, column=0)
+		foodLabel = tk.Label(frame, text="Food: {}".format(int(closest.food)))
+		foodLabel.grid(row=3, column=1)
+		frame.attributes('-topmost', 'true')
+		def on_closing_info():
+			global highlightPlayers
+			if closest.id in highlightPlayers:
+				remIndex = 0
+				for idx in range(len(highlightPlayers)):
+					if highlightPlayers[idx] == closest.id:
+						remIndex = idx
+						break
+				if len(highlightPlayers) - 1 == remIndex:
+					highlightPlayers = highlightPlayers[:-1]
+				else:
+					highlightPlayers = highlightPlayers[:remIndex] + highlightPlayers[remIndex + 1:]
+			frame.destroy()
+		frame.protocol("WM_DELETE_WINDOW", on_closing_info)
+		def newFrameThread():
+			foodLabel["text"] = "Food: {}".format(int(closest.food))
+			if closest.food <= 0:
+				frame.destroy()
+			frame.after(10, newFrameThread)
+		allInfoFrames.append((frame, closest))
+		frame.after(0, newFrameThread)
 for i in range(50):
 	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(100):
@@ -319,9 +422,10 @@ def handleOneFrame():
 		label['text'] = "Aquarium by Evan Fellman\t\t\tEveryone died. This ran from {} to {}".format(veryStart, datetime.now())
 		label['font'] = ("Helvetica", 15)
 	else:
-		label['text'] = "Aquarium by Evan Fellman\t\t\tplayers alive: {}".format(len(players))
+		label['text'] = "Aquarium by Evan Fellman\tStarted at {}/{} {}:{}\t\tplayers alive: {}".format(veryStart.day, veryStart.month, veryStart.hour, veryStart.minute, len(players))
 		canvas.after(15, handleOneFrame)
 canvas.after(0, handleOneFrame)
+canvas.bind("<Button-1>", onclick)
 window.mainloop()
 
 
