@@ -21,15 +21,18 @@ foodDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
 highlightPlayers = []
 showFoodCounter = False
 paused = False
+helpTabOpen = False
 
 def onKeyPress(event):
 	global paused
 	global showFoodCounter
+	global helpTabOpen
 	if event.char == '':
 		paused = not paused
 	elif event.char == 'f':
 		showFoodCounter = not showFoodCounter
-	elif event.char == 'h':
+	elif event.char == 'h' and not helpTabOpen:
+		helpTabOpen = True
 		frame = tk.Toplevel(window)
 		frame.title("Help")
 		frame.geometry("300x355")
@@ -56,6 +59,14 @@ efore cannot reproduce anymore. As time goes on, players will get smarter and sm
 		#Food labels
 		tk.Label(frame, text="F", anchor="w").grid(row=3, column=0, sticky=tk.W)
 		tk.Label(frame, text="Show food counts", anchor="w").grid(row=3, column=1, stick=tk.W)
+
+		def close():
+			global helpTabOpen
+			helpTabOpen = False
+			frame.destroy()
+
+		frame.protocol("WM_DELETE_WINDOW", close)
+
 
 
 
