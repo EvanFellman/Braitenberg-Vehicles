@@ -460,11 +460,6 @@ def onclick(event):
 		for nodeNum, data in neurons.items():
 			for d in data[2]:
 				red = 0
-				green = 0
-				# if d.weight == 0:
-				# 	green = 255
-				# 	red = 0
-				# else:
 				green = int(max(-255, min(255, (d.weight * 128))))
 				if green < 0:
 					red = green * -1
@@ -564,7 +559,7 @@ def onclick(event):
 		allInfoFrames.append((frame, closest))
 		frame.bind('<KeyPress>', onKeyPress)
 		frame.after(0, newFrameThread, sums)
-for i in range(50):
+for i in range(100):
 	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(100):
 	players.append(Player())
@@ -596,7 +591,7 @@ def handleOneFrame():
 		canvas.delete("all")
 		for p in players:
 			p.tick()
-		while len(foods) < foodMin:
+		while len(foods) < foodMin and len(foods) < 2 * len(players):
 			x = random() * WIDTH
 			y = random() * HEIGHT
 			foods.append((x, y))
