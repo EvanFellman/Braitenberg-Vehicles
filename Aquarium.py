@@ -3,11 +3,14 @@ import math
 from random import *
 from datetime import datetime
 window = tk.Tk()
+window.title("Aquarium by Evan Fellman")
 window.attributes('-fullscreen', True)
 label = tk.Label(window, text="AntFarm by Evan Fellman", font=("Helvetica", 30))
 label.pack()
 WIDTH = window.winfo_screenwidth()
 HEIGHT = window.winfo_screenheight() - label.winfo_reqheight()
+if WIDTH < 1536:
+	label['font'] = ("Helvetica", 20)
 canvas = tk.Canvas(window, width=WIDTH, height=HEIGHT)
 canvas.pack()
 NEXT_PLAYER_ID = 0
@@ -16,6 +19,45 @@ foods = []
 playerDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
 foodDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
 highlightPlayers = []
+showFoodCounter = False
+paused = False
+
+def onKeyPress(event):
+	global paused
+	global showFoodCounter
+	if event.char == '':
+		paused = not paused
+	elif event.char == 'f':
+		showFoodCounter = not showFoodCounter
+	elif event.char == 'h':
+		frame = tk.Toplevel(window)
+		frame.title("Help")
+		frame.geometry("300x355")
+		frame.resizable(0,0)
+		frame.attributes('-topmost', 'true')
+		frame.bind('<KeyPress>', onKeyPress)
+
+		#Explanation
+		explanation = tk.Label(frame, text="Welcome to my Aquarium!\n\nEach triangle is a player and every player is controlled by a neural network. To see the \
+neural network of a player, click on it. The yellow squares are food for the players. When a player eats enough food, it has a child that is a sl\
+ightly mutated copy of the parent. This can mean a lot of things, namely: a new neuron, a new edge or an edge's weight is changed. All children have a similar color to their parent.\n\nAs time goes o\
+n players lose food based on how fast they are traveling and how many players are currently alive. If a player has no food left, it dies and ther\
+efore cannot reproduce anymore. As time goes on, players will get smarter and smarter.\n\nThe follow are keys you can press to get more information about the aquarium:", wraplength=300, justify="left")
+		explanation.grid(row=0, column=0, columnspan=2)
+
+		#This menu
+		tk.Label(frame, text="H", anchor="w").grid(row=1, column=0, stick=tk.W)
+		tk.Label(frame, text="Make this window pop up", anchor="w").grid(row=1, column=1, stick=tk.W)
+
+		#Pause labels
+		tk.Label(frame, text="Escape", anchor="w").grid(row=2, column=0, sticky=tk.W)
+		tk.Label(frame, text="Pause the simulation", anchor="w").grid(row=2, column=1, stick=tk.W)
+
+		#Food labels
+		tk.Label(frame, text="F", anchor="w").grid(row=3, column=0, sticky=tk.W)
+		tk.Label(frame, text="Show food counts", anchor="w").grid(row=3, column=1, stick=tk.W)
+
+
 
 #reduce<T, E>: (arr: T[], f: (E, T) => E, initValue: E): E
 def reduce(arr, f, initValue):
@@ -202,7 +244,7 @@ class Player:
 			self.food = 40
 			self.brain = NeuralNetwork(7, 2)
 			self.foodToBirth = round(100 + (random() * 10))
-			self.color = (math.floor(random() * 256),math.floor(random() * 256),math.floor(random() * 256))
+			self.color = (30 + math.floor(random() * 196),30 + math.floor(random() * 196), 30 + math.floor(random() * 196))
 			self.x = random() * WIDTH
 			self.y = random() * HEIGHT
 			self.dir = random() * math.pi * 2
@@ -214,7 +256,7 @@ class Player:
 			copy.mutate()
 			self.brain = copy
 			self.foodToBirth = max(41, round(parent.foodToBirth + (random() * 4) - 2))
-			self.color = tuple(map(lambda x: min(255, max(0, round(x + (random() * 20) - 10))), parent.color))
+			self.color = tuple(map(lambda x: min(225, max(30, round(x + (random() * 20) - 10))), parent.color))
 			self.x = min(WIDTH - 1, max(0, parent.x + (random() * 100) - 50))
 			self.y = min(HEIGHT - 1, max(0, parent.y + (random() * 100) - 50))
 			self.dir = parent.dir
@@ -319,6 +361,13 @@ class Player:
 				(self.x + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), self.y - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))),
 				(self.x + (SIZE * math.cos(self.dir + (5 * math.pi / 4))), self.y - (SIZE * math.sin(self.dir + (5 * math.pi / 4))))
 			], fill="#%02x%02x%02x" % self.color)
+		global showFoodCounter
+		if showFoodCounter:
+			color = (0, 0, 0)
+			canvas.create_text((self.x + (SIZE * (1/2) * math.cos(math.pi / 4) * math.cos(self.dir + math.pi)), (self.y - (SIZE * (1/2) * math.cos(math.pi / 4) * math.sin(self.dir + math.pi))) - SIZE),
+				text=str(int(self.food)),
+				font=("Helvetica", 10),
+				fill="#%02x%02x%02x" % color)
 
 allInfoFrames = []
 
@@ -335,7 +384,6 @@ def onclick(event):
 			closest = (p.x - mouseX) ** 2 + (p.y - mouseY) ** 2, p
 	closest = closest[1]
 	if closest == None:
-		#There are no players on screen :(
 		return
 	elif closest.id in highlightPlayers:
 		remIndex = 0
@@ -359,6 +407,7 @@ def onclick(event):
 	else:
 		highlightPlayers.append(closest.id)
 		frame = tk.Toplevel(window)
+		frame.title("Data")
 		frame.geometry("200x325")
 		picOfDude = tk.Canvas(frame, width=200, height=125)
 		picOfDude.grid(row=0, columnspan=2, rowspan=3)
@@ -499,8 +548,10 @@ def onclick(event):
 				box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
 			if closest.food <= 0 or closest.id not in highlightPlayers:
 				frame.destroy()
+			window.bind('<KeyPress>', onKeyPress)
 			frame.after(10, newFrameThread, sums)
 		allInfoFrames.append((frame, closest))
+		frame.bind('<KeyPress>', onKeyPress)
 		frame.after(0, newFrameThread, sums)
 for i in range(50):
 	foods.append((random() * WIDTH, random() * HEIGHT))
@@ -514,35 +565,48 @@ def handleOneFrame():
 	global frameCount
 	global start
 	global foodMin
-	if frameCount == 100:
-		foodMin = max(1, min(22, (60/50) * frameCount / (datetime.now() - start).seconds))
-		start = datetime.now()
-		frameCount = 0
+	global paused
+	if paused:
+		canvas.delete("all")
+		for p in players:
+			p.draw()
+		for food in foods:
+			canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
+		canvas.create_rectangle(0, 0, WIDTH, HEIGHT, fill="black", stipple="gray25")
+		canvas.create_text((int(WIDTH / 2), 0), text="Press 'H' for help", font=("Helvetica", 20), anchor=tk.N)
+		canvas.create_text((int(WIDTH / 2), int(HEIGHT / 2)), text="PAUSED", font=("Helvetica", 100))
 	else:
-		frameCount += 1
-	canvas.delete("all")
-	for p in players:
-		p.tick()
-	while len(foods) < foodMin:
-		x = random() * WIDTH
-		y = random() * HEIGHT
-		foods.append((x, y))
-		foodDensity[int(x // 20)][int(y // 20)] += 1
-	if random() < 0.25:
-		x = random() * WIDTH
-		y = random() * HEIGHT
-		foods.append((x, y))
-		foodDensity[int(x // 20)][int(y // 20)] += 1
-	for food in foods:
-		canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
-	if len(players) == 0:
-		label['text'] = "Aquarium by Evan Fellman\t\t\tEveryone died. This ran from {} to {}".format(veryStart, datetime.now())
-		label['font'] = ("Helvetica", 15)
-	else:
-		label['text'] = "Aquarium by Evan Fellman\tStarted at {}/{} {}:{}\t\tplayers alive: {}".format(veryStart.day, veryStart.month, veryStart.hour, veryStart.minute, len(players))
+		if frameCount == 100:
+			foodMin = max(1, min(22, (60/50) * frameCount / (datetime.now() - start).seconds))
+			start = datetime.now()
+			frameCount = 0
+		else:
+			frameCount += 1
+		canvas.delete("all")
+		for p in players:
+			p.tick()
+		while len(foods) < foodMin:
+			x = random() * WIDTH
+			y = random() * HEIGHT
+			foods.append((x, y))
+			foodDensity[int(x // 20)][int(y // 20)] += 1
+		if random() < 0.25:
+			x = random() * WIDTH
+			y = random() * HEIGHT
+			foods.append((x, y))
+			foodDensity[int(x // 20)][int(y // 20)] += 1
+		for food in foods:
+			canvas.create_rectangle(food[0] - 5, food[1] - 5, food[0] + 5, food[1] + 5, fill="yellow")
+		if len(players) == 0:
+			label['text'] = "Aquarium by Evan Fellman\t\t\tEveryone died. This ran from {} to {}".format(veryStart, datetime.now())
+			label['font'] = ("Helvetica", 15)
+		else:
+			label['text'] = "Aquarium by Evan Fellman\tStarted at {}/{} {}:{}\t\tplayers alive: {}".format(veryStart.day, veryStart.month, veryStart.hour, veryStart.minute, len(players))
+	if len(players) > 0:
 		canvas.after(15, handleOneFrame)
 canvas.after(0, handleOneFrame)
 canvas.bind("<Button-1>", onclick)
+window.bind('<KeyPress>', onKeyPress)
 window.mainloop()
 
 
