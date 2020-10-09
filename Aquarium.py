@@ -38,7 +38,7 @@ def onKeyPress(event):
 		frame.bind('<KeyPress>', onKeyPress)
 
 		#Explanation
-		explanation = tk.Label(frame, text="Welcome to my Aquarium!\n\nEach triangle is a player and every player is controlled by a neural network. To see the \
+		explanation = tk.Label(frame, text="Welcome to my aquarium!\n\nEach triangle is a player and every player is controlled by a neural network. To see the \
 neural network of a player, click on it. The yellow squares are food for the players. When a player eats enough food, it has a child that is a sl\
 ightly mutated copy of the parent. This can mean a lot of things, namely: a new neuron, a new edge or an edge's weight is changed. All children have a similar color to their parent.\n\nAs time goes o\
 n players lose food based on how fast they are traveling and how many players are currently alive. If a player has no food left, it dies and ther\
