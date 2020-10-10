@@ -21,44 +21,65 @@ foodDensity = [[0] * (1 + int(HEIGHT // 20))] * (1 + int(WIDTH // 20))
 highlightPlayers = []
 showFoodCounter = False
 paused = False
+pausedTimer = None
 helpTabOpen = False
+restartGame = False
 
 def onKeyPress(event):
 	global paused
 	global showFoodCounter
 	global helpTabOpen
-	if event.char == '':
+	global pausedTimer
+	global restartGame
+	global players
+	global window
+	if event.char == '' or event.char == ' ':
+		if paused:
+			diff = datetime.now() - pausedTimer
+			for p in players:
+				p.born += diff
+		else:
+			pausedTimer = datetime.now()
 		paused = not paused
 	elif event.char == 'f':
 		showFoodCounter = not showFoodCounter
+	elif event.char == 'r':
+		restartGame = True
 	elif event.char == 'h' and not helpTabOpen:
 		helpTabOpen = True
 		frame = tk.Toplevel(window)
 		frame.title("Help")
-		frame.geometry("300x355")
+		frame.geometry("310x415")
 		frame.resizable(0,0)
 		frame.attributes('-topmost', 'true')
 		frame.bind('<KeyPress>', onKeyPress)
-
 		#Explanation
-		explanation = tk.Label(frame, text="Welcome to my aquarium!\n\nEach triangle is a player and every player is controlled by a neural network. To see the \
+		explanation = tk.Label(frame, text="Welcome to my aquarium!\n\nEach triangle is a player, and every player is controlled by a neural network. To see the \
 neural network of a player, click on it. The yellow squares are food for the players. When a player eats enough food, it has a child that is a sl\
 ightly mutated copy of the parent. This can mean a lot of things, namely: a new neuron, a new edge or an edge's weight is changed. All children have a similar color to their parent.\n\nAs time goes o\
-n players lose food based on how fast they are traveling and how many players are currently alive. If a player has no food left, it dies and ther\
-efore cannot reproduce anymore. As time goes on, players will get smarter and smarter.\n\nThe follow are keys you can press to get more information about the aquarium:", wraplength=300, justify="left")
+n, players lose food based on how fast they are traveling and how many players are currently alive. If a player has no food left, it dies, and ther\
+efore cannot reproduce anymore. As time goes on, the average living player will get smarter. If all the players die, the experiment ends. Press 'R' to give it another go.\n\nThe follow are keys you can press to get more information about the aquarium:", wraplength=300, justify="left")
 		explanation.grid(row=0, column=0, columnspan=2)
 
 		#This menu
-		tk.Label(frame, text="H", anchor="w").grid(row=1, column=0, stick=tk.W)
-		tk.Label(frame, text="Make this window pop up", anchor="w").grid(row=1, column=1, stick=tk.W)
+		tk.Label(frame, text="H", anchor="w").grid(row=3, column=0, stick=tk.W)
+		tk.Label(frame, text="Make this window pop up", anchor="w").grid(row=3, column=1, stick=tk.W)
 
 		#Pause labels
-		tk.Label(frame, text="Escape", anchor="w").grid(row=2, column=0, sticky=tk.W)
-		tk.Label(frame, text="Pause the simulation", anchor="w").grid(row=2, column=1, stick=tk.W)
+		tk.Label(frame, text="Escape/Space", anchor="w").grid(row=1, column=0, sticky=tk.W)
+		tk.Label(frame, text="Pause the simulation", anchor="w").grid(row=1, column=1, stick=tk.W)
 
 		#Food labels
-		tk.Label(frame, text="F", anchor="w").grid(row=3, column=0, sticky=tk.W)
-		tk.Label(frame, text="Show food counts", anchor="w").grid(row=3, column=1, stick=tk.W)
+		tk.Label(frame, text="F", anchor="w").grid(row=4, column=0, sticky=tk.W)
+		tk.Label(frame, text="Show food counts", anchor="w").grid(row=4, column=1, stick=tk.W)
+
+		#restart labels
+		tk.Label(frame, text="R", anchor="w").grid(row=5, column=0, sticky=tk.W)
+		tk.Label(frame, text="Restart game", anchor="w").grid(row=5, column=1, stick=tk.W)
+
+		#Click labels
+		tk.Label(frame, text="Click", anchor="w").grid(row=2, column=0, sticky=tk.W)
+		tk.Label(frame, text="View player details", anchor="w").grid(row=2, column=1, stick=tk.W)
 
 		def close():
 			global helpTabOpen
@@ -249,8 +270,10 @@ class Player:
 		NEXT_PLAYER_ID += 1
 		self.born = datetime.now()
 		self.numChildren = 0
+		self.speed = 0
 		if parent == None:
 			self.parentId = None
+			self.gen = 1
 			self.foodForChildren = round(10 + (random() * 10))
 			self.food = 40
 			self.brain = NeuralNetwork(7, 2)
@@ -261,6 +284,7 @@ class Player:
 			self.dir = random() * math.pi * 2
 		else:
 			self.parentId = parent.id
+			self.gen = parent.gen + 1
 			self.foodForChildren = round(parent.foodForChildren + (random() * 4) - 2)
 			self.food = 2.5 * parent.foodForChildren
 			copy = parent.brain.copy()
@@ -419,21 +443,21 @@ def onclick(event):
 		highlightPlayers.append(closest.id)
 		frame = tk.Toplevel(window)
 		frame.title("Data")
-		frame.geometry("200x325")
-		picOfDude = tk.Canvas(frame, width=200, height=125)
+		frame.geometry("210x350")
+		picOfDude = tk.Canvas(frame, width=210, height=125)
 		picOfDude.grid(row=0, columnspan=2, rowspan=3)
 		SIZE = 75
 		frame.resizable(0,0)
-		picOfDude.create_rectangle(0, 0, 200, 125, fill="#%02x%02x%02x" % (255, 255, 255))
+		picOfDude.create_rectangle(0, 0, 210, 125, fill="#%02x%02x%02x" % (255, 255, 255))
 		picOfDude.create_polygon([
 					(125, 60), 
 					(125 + (SIZE * math.cos(3 * math.pi / 4)), 60 - (SIZE * math.sin(3 * math.pi / 4))), 
 					(125 + (SIZE * (3/4) * math.cos(math.pi / 4) * math.cos(math.pi)), 60 - (SIZE * (3/4) * math.cos(math.pi / 4) * math.sin(math.pi))),
 					(125 + (SIZE * math.cos(5 * math.pi / 4)), 60 - (SIZE * math.sin(5 * math.pi / 4)))
 				], fill="#%02x%02x%02x" % closest.color)
-		neuralNetPic = tk.Canvas(frame, width=200, height=125)
+		neuralNetPic = tk.Canvas(frame, width=210, height=125)
 		neuralNetPic.grid(row=3, columnspan=2, rowspan=3)
-		neuralNetPic.create_rectangle(0, 0, 200, 200, fill="#%02x%02x%02x" % (255, 255, 255))
+		neuralNetPic.create_rectangle(0, 0, 210, 200, fill="#%02x%02x%02x" % (255, 255, 255))
 		numNeurons = len(closest.brain.depend)
 		dx = int(200 / (numNeurons - (len(closest.brain.inputs) - 2)))
 		dy = 20
@@ -464,7 +488,7 @@ def onclick(event):
 				if green < 0:
 					red = green * -1
 					green = 0
-				neuralNetPic.create_line(data[0] + 5, data[1] + 5, neurons[d.start][0] + 5, neurons[d.start][1] + 5, fill="#%02x%02x%02x" % (red, green, 0))
+				neuralNetPic.create_line(data[0] + 5, data[1] + 5, neurons[d.start][0] + 5, neurons[d.start][1] + 5, fill="#%02x%02x%02x" % (red, green, 0), width=1.5)
 		for nodeNum, data in neurons.items():
 			neuralNetPic.create_rectangle(data[0]- 1, data[1] - 1, data[0] + 10, data[1] + 10, fill="black")
 			box = tk.Canvas(frame, width=10, height=10, highlightthickness=0)
@@ -488,11 +512,15 @@ def onclick(event):
 		elif tDelta.seconds > 60:
 			timeString = str(int(tDelta.seconds / 60)) + " minutes"
 		else:
-			timeString = str(tDelta.seconds) + " seconds"
+			timeString = str(tDelta.seconds) + " sec"
 		timeAliveLabel = tk.Label(frame, text="Time alive: {}".format(timeString))
 		timeAliveLabel.grid(row=8, column=0)
 		numChildrenLabel = tk.Label(frame, text="Children count: {}".format(closest.numChildren))
 		numChildrenLabel.grid(row=8,column=1)
+		foodToBirthLabel = tk.Label(frame, text="Food to birth: {}".format(closest.foodToBirth))
+		foodToBirthLabel.grid(row=9,column=0)
+		generationLabel = tk.Label(frame, text="Generation: {}".format(closest.gen))
+		generationLabel.grid(row=9,column=1)
 		frame.attributes('-topmost', 'true')
 		def on_closing_info():
 			global highlightPlayers
@@ -520,6 +548,7 @@ def onclick(event):
 			sums[i] = 0
 		sums[-1] = 0
 		def newFrameThread(sums):
+			global paused
 			foodLabel["text"] = "Food: {}".format(int(closest.food))
 			if closest.food <= 20:
 				foodLabel["fg"] = '#%02x%02x%02x' % (255 - int(255 * closest.food / 20), 0, 0)
@@ -537,7 +566,8 @@ def onclick(event):
 				timeString = str(int(tDelta.seconds / 60)) + " min"
 			else:
 				timeString = str(tDelta.seconds) + " sec"
-			timeAliveLabel["text"] = "Time alive: {}".format(timeString)
+			if not paused:
+				timeAliveLabel["text"] = "Time alive: {}".format(timeString)
 			numChildrenLabel["text"] = "Children count: {}".format(closest.numChildren)
 			lastCalc = closest.brain.lastCalc
 			if sums[-1] == 200:
@@ -545,13 +575,15 @@ def onclick(event):
 				for i in neurons.keys():
 					sums[i] = 0
 				sums[-1] = 0
-			for nodeNum, value in lastCalc.items():
-				sums[nodeNum] += value
+			if lastCalc != None:
+				for nodeNum, value in lastCalc.items():
+					sums[nodeNum] += value
 			sums[-1] += 1
-			for nodeNum, box in neurons.items():
-				box.delete("all")
-				color = 255 - int(255 * sigmoid((lastCalc[nodeNum] - (sums[nodeNum] / sums[-1])) / 100))
-				box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
+			if lastCalc !=None:
+				for nodeNum, box in neurons.items():
+					box.delete("all")
+					color = 255 - int(255 * sigmoid((lastCalc[nodeNum] - (sums[nodeNum] / sums[-1])) / 100))
+					box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
 			if closest.food <= 0 or closest.id not in highlightPlayers:
 				frame.destroy()
 			window.bind('<KeyPress>', onKeyPress)
@@ -572,6 +604,23 @@ def handleOneFrame():
 	global start
 	global foodMin
 	global paused
+	global restartGame
+	global players
+	global foods
+	global veryStart
+	if restartGame:
+		restartGame = False
+		foods = []
+		players = []
+		global highlightPlayers
+		highlightPlayers = []
+		veryStart = datetime.now()
+		start = datetime.now()
+		for i in range(100):
+			foods.append((random() * WIDTH, random() * HEIGHT))
+		for i in range(100):
+			players.append(Player())
+		frameCount = 0
 	if paused:
 		canvas.delete("all")
 		for p in players:
@@ -596,7 +645,7 @@ def handleOneFrame():
 			y = random() * HEIGHT
 			foods.append((x, y))
 			foodDensity[int(x // 20)][int(y // 20)] += 1
-		if random() < 0.25:
+		if random() < 0.25 and len(foods) < 2 * len(players):
 			x = random() * WIDTH
 			y = random() * HEIGHT
 			foods.append((x, y))
@@ -606,10 +655,10 @@ def handleOneFrame():
 		if len(players) == 0:
 			label['text'] = "Aquarium by Evan Fellman\t\t\tEveryone died. This ran from {} to {}".format(veryStart, datetime.now())
 			label['font'] = ("Helvetica", 15)
+			canvas.create_text((int(WIDTH / 2), int(HEIGHT / 2)), text="Press 'R' to retry the experiment", font=("Helvetica", 75), fill="black")
 		else:
-			label['text'] = "Aquarium by Evan Fellman\tStarted at {}/{} {}:{}\t\tplayers alive: {}".format(veryStart.day, veryStart.month, veryStart.hour, veryStart.minute, len(players))
-	if len(players) > 0:
-		canvas.after(15, handleOneFrame)
+			label['text'] = "Aquarium by Evan Fellman\tStarted at {}/{} {}:{:2d}\t\tPlayers alive: {}".format(veryStart.month, veryStart.day, veryStart.hour, veryStart.minute, len(players))
+	canvas.after(15, handleOneFrame)
 canvas.after(0, handleOneFrame)
 canvas.bind("<Button-1>", onclick)
 window.bind('<KeyPress>', onKeyPress)
