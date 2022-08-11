@@ -117,6 +117,7 @@ def largest(arr):
 class NeuralNetwork:
 	def __init__(self, inputSize, outputSize):
 		self.edges = []
+		self.biases = ([0] * inputSize) + ([0] * outputSize)
 		self.inputs = list(range(inputSize))
 		self.outputs = list(range(inputSize, inputSize + outputSize))
 		self.depend = [DependObj(i, [], {}) for i in (self.inputs + self.outputs) ]
@@ -135,14 +136,24 @@ class NeuralNetwork:
 	def computeOutput(self, inputVector):
 		nodeValues = {}
 		for i in range(len(inputVector)):
-			nodeValues[i] = inputVector[i]
+			if inputVector[i] < -10:
+				nodeValues[i] = 0
+			elif inputVector[i] > 10:
+				nodeValues[i] = 1
+			else:
+				nodeValues[i] = 1 / (1 + (math.e ** (-1 * inputVector[i])))
 		for dependObj in self.depend:
 			if dependObj.nodeNum in self.inputs:
 				continue
-			acc = 0
+			acc = self.biases[dependObj.nodeNum]
 			for e in dependObj.dependsOn:
 				acc += nodeValues[e.start] * e.weight
-			nodeValues[dependObj.nodeNum] = acc
+			if -10 < acc < 10:
+				nodeValues[dependObj.nodeNum] = 1 / (1 + (math.e ** (-0.5 * acc)))
+			elif acc < -10:
+				nodeValues[dependObj.nodeNum] = 0
+			else:
+				nodeValues[dependObj.nodeNum] = 1
 		self.lastCalc = nodeValues
 		return [nodeValues[i] for i in self.outputs]
 
@@ -154,6 +165,7 @@ class NeuralNetwork:
 		newE2 = Edge(self.highestNode, edge.end, 1)
 		self.edges.append(newE1)
 		self.edges.append(newE2)
+		self.biases.append(0)
 		for dependObj in self.depend:
 			if dependObj.nodeNum == edge.end:
 				dependObj.dependsOn = [newE2] + [u for u in dependObj.dependsOn if u.start != edge.start]
@@ -229,6 +241,7 @@ class NeuralNetwork:
 		out.highestNode = self.highestNode
 		out.inputs = self.inputs
 		out.outputs = self.outputs
+		out.biases = self.biases[:]
 		out.depend = [DependObj(a.nodeNum, [i.copy() for i in a.dependsOn], a.allDependants.copy()) for a in self.depend]
 		out.depend.sort(key=lambda x: len(x.allDependants))
 		return out
@@ -239,6 +252,8 @@ class NeuralNetwork:
 			self.addNode()
 		elif rnJesus < 0.30:
 			self.addEdge()
+		elif rnJesus < 0.35:
+			self.biases[int(random() * len(self.biases))] += (2 * random()) - 1
 		else:
 			self.mutateEdge()
 
@@ -347,9 +362,16 @@ class Player:
 			for j in range(max(int(self.y//20) - 3, 0), 1 + min(int(self.y//20) + 3, int((HEIGHT - 1)//20))):
 				foodDensityInput += foodDensity[i][j]
 				playerDensityInput += playerDensity[i][j]
-		speedAndDirection = self.brain.computeOutput([((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2), 100 * (math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x) - (self.dir % (2 * math.pi))), self.x, self.y, 100 * self.dir, 10 * foodDensityInput, 10 * playerDensityInput])
-		speed = max(0, min(math.log(max(0, speedAndDirection[0] / 20)+1), 10))
-		self.dir += max(0, min(speedAndDirection[1] / 100, math.pi / 16))
+		angle = math.atan2(nearestFood[1] - self.y, nearestFood[0] - self.x)
+		if angle < 0:
+			angle = (2 * math.pi) + angle 
+		direction = (self.dir % (2 * math.pi))
+		# if direction > math.pi:
+		# 	direction = (math.pi - direction)
+		angle = (angle - direction) - math.pi
+		speedAndDirection = self.brain.computeOutput([((((nearestFood[0] - self.x) ** 2) + ((nearestFood[1] - self.y) ** 2)) ** 0.5) - 25, angle, self.x, self.y, 100 * self.dir, 10 * foodDensityInput, 10 * playerDensityInput])
+		speed = 5 * speedAndDirection[0]
+		self.dir += (speedAndDirection[1] - 0.5) * math.pi / 16
 		playerDensity[int(self.x // 20)][int(self.y // 20)] -= 1
 		self.x += math.cos(self.dir) * speed
 		self.y -= math.sin(self.dir) * speed
@@ -536,13 +558,6 @@ def onclick(event):
 					highlightPlayers = highlightPlayers[:remIndex] + highlightPlayers[remIndex + 1:]
 			frame.destroy()
 		frame.protocol("WM_DELETE_WINDOW", on_closing_info)
-		def sigmoid(x):
-			if x > 100:
-				return 1
-			elif x < -100:
-				return 0
-			else:
-				return 1 / (1 + math.exp(-1 *x))
 		sums = {}
 		for i in neurons.keys():
 			sums[i] = 0
@@ -582,7 +597,7 @@ def onclick(event):
 			if lastCalc !=None:
 				for nodeNum, box in neurons.items():
 					box.delete("all")
-					color = 255 - int(255 * sigmoid((lastCalc[nodeNum] - (sums[nodeNum] / sums[-1])) / 100))
+					color = int(255 * lastCalc[nodeNum])
 					box.create_rectangle(0, 0, 9, 9, fill='#%02x%02x%02x' % (color, color, color))
 			if closest.food <= 0 or closest.id not in highlightPlayers:
 				frame.destroy()
@@ -594,7 +609,12 @@ def onclick(event):
 for i in range(100):
 	foods.append((random() * WIDTH, random() * HEIGHT))
 for i in range(100):
-	players.append(Player())
+	p = Player()
+	p.brain.mutate()
+	p.brain.mutate()
+	p.brain.mutate()
+	p.brain.mutate()
+	players.append(p)
 frameCount = 0
 start = datetime.now()
 veryStart = datetime.now()
@@ -619,7 +639,12 @@ def handleOneFrame():
 		for i in range(100):
 			foods.append((random() * WIDTH, random() * HEIGHT))
 		for i in range(100):
-			players.append(Player())
+			p = Player()
+			p.brain.mutate()
+			p.brain.mutate()
+			p.brain.mutate()
+			p.brain.mutate()
+			players.append(p)
 		frameCount = 0
 	if paused:
 		canvas.delete("all")
